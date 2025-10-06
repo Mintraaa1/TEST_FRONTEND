@@ -1,0 +1,4 @@
+# Robot Framework test reports
+output.xml
+log.html
+report.html
