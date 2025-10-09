@@ -1,50 +1,30 @@
 *** Settings ***
-Library    SeleniumLibrary
+Library    RequestsLibrary
+Library    BuiltIn
+Library    Collections
+Library    OperatingSystem
 Library    String
 
-Suite Setup       Open Browser To Register Page
-Suite Teardown    Close Browser
-Test Teardown     Capture Page Screenshot    ./screenshots/${TEST NAME}.png
-
 *** Variables ***
-${BROWSER}        chrome
-${BASE_URL}       http://localhost:5173
-${REGISTER_URL}   ${BASE_URL}/register
-${LOGIN_URL}      ${BASE_URL}/login
-${PASSWORD}       Test1234
-${NEW_EMAIL}      NONE
-
-*** Keywords ***
-Open Browser To Register Page
-    Open Browser    ${REGISTER_URL}    ${BROWSER}
-    Maximize Browser Window
-    Set Selenium Timeout    20s
-
-Generate Random Email
-    ${rand}=    Generate Random String    5    [LETTERS]
-    ${email}=   Set Variable    robotuser${rand}@example.com
-    RETURN    ${email}
+${BASE_URL}    http://localhost:5000/api
+${RANDOM}=     Evaluate    random.randint(1000,9999)    modules=random
+${NEW_EMAIL}=  Set Variable    test${RANDOM}@example.com
+${PASSWORD}    Test1234
+${NAME}        Test User
+${PHONE}       0812345678
 
 *** Test Cases ***
-Register New User (Success)
-    ${email}=    Generate Random Email
-    Set Suite Variable    ${NEW_EMAIL}    ${email}
-    Wait Until Element Is Visible    id=name    20s
-    Input Text    id=name    Robot User
-    Input Text    id=phone   0123456789
-    Input Text    id=email   ${email}
-    Input Text    id=password    ${PASSWORD}
-    Input Text    id=confirmPassword    ${PASSWORD}
-    Click Button    xpath=//button[contains(text(),"ลงทะเบียน")]
-    Wait Until Page Contains    ลงทะเบียนสำเร็จ    timeout=15s
-    Wait Until Location Contains    /login    15s
-    Page Should Contain    เข้าสู่ระบบ
+Register API (Success) :: ✅ ทดสอบการลงทะเบียนผู้ใช้ใหม่ (สำเร็จ)
+    Create Session    mysession    ${BASE_URL}
+    ${data}=    Create Dictionary    name=${NAME}    phone=${PHONE}    email=${NEW_EMAIL}    password=${PASSWORD}    role=user
+    ${response}=    POST On Session    mysession    /user/register    json=${data}
+    Log To Console    Register API response: ${response.status_code} ${response.text}
+    Should Be Equal As Integers    ${response.status_code}    201
 
-Login With Registered User (Success)
-    Go To    ${LOGIN_URL}
-    Wait Until Element Is Visible    id=email    20s
-    Input Text    id=email    ${NEW_EMAIL}
-    Input Text    id=password    ${PASSWORD}
-    Click Button    xpath=//button[contains(text(),"เข้าสู่ระบบ")]
-    Wait Until Page Contains Element    xpath=//div[contains(text(),"เข้าสู่ระบบสำเร็จ")]    20s
-    Wait Until Location Is    ${BASE_URL}/    15s
+Login API (Success) :: ✅ ทดสอบเข้าสู่ระบบด้วยข้อมูลที่ถูกต้อง
+    Create Session    mysession    ${BASE_URL}
+    ${data}=    Create Dictionary    email=${NEW_EMAIL}    password=${PASSWORD}
+    ${response}=    POST On Session    mysession    /user/login    json=${data}
+    Log To Console    Login API response: ${response.status_code} ${response.text}
+    Should Be Equal As Integers    ${response.status_code}    200
+    Dictionary Should Contain Key    ${response.json()}    email

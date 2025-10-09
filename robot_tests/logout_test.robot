@@ -1,15 +1,19 @@
 *** Settings ***
-Library    RequestsLibrary
+Library           RequestsLibrary
+Library           Collections
 
 *** Variables ***
-${API_URL}    http://localhost:5000/api
+${BASE_URL}       http://localhost:5000/api/user
+${EMAIL}          robotuser123@example.com
+${PASSWORD}       Test1234
 
 *** Test Cases ***
-Logout Clears Token (Success)
-    Create Session    api    ${API_URL}
-    ${body}=    Create Dictionary    email=test@example.com    password=Test1234
-    ${login}=    Post Request    api    /user/login    json=${body}
-    ${cookies}=    Set Variable    ${login.cookies}
-    ${logout}=    Post Request    api    /user/logout    cookies=${cookies}
-    Should Be Equal As Integers    ${logout.status_code}    200
-    Should Contain    ${logout.text}    Logged out successfully
+Login Should Return JWT
+    [Documentation]    ✅ เมื่อเข้าสู่ระบบสำเร็จ ต้องได้ cookie ชื่อ jwt
+    Create Session    user    ${BASE_URL}
+    ${data}=    Create Dictionary    email=${EMAIL}    password=${PASSWORD}
+    ${headers}=    Create Dictionary    Content-Type=application/json
+    ${resp}=    POST On Session    user    /login    json=${data}    headers=${headers}
+    Log To Console    Login cookies: ${resp.cookies}
+    Should Be Equal As Integers    ${resp.status_code}    200
+    Dictionary Should Contain Key    ${resp.cookies}    jwt

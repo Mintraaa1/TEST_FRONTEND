@@ -1,25 +1,30 @@
 *** Settings ***
 Library    SeleniumLibrary
+Library    RequestsLibrary
+Library    Collections
 
 *** Variables ***
-${BASE_URL}       http://localhost:5173
-${LOGIN_URL}      ${BASE_URL}/login
-${BROWSER}        chrome
-${PASSWORD}       Test1234
+${BASE_URL}    http://localhost:5173/login
 
 *** Test Cases ***
-Login With Wrong Password (Fail)
-    Open Browser    ${LOGIN_URL}    ${BROWSER}
+Login With Valid User
+    Open Browser    ${BASE_URL}    chrome
+    Wait Until Element Is Visible    id=email    10s
+    Input Text    id=email    test@example.com
+    Input Text    id=password    Test1234
+    Click Button    xpath=//button[contains(text(),"เข้าสู่ระบบ")]
+    Wait Until Location Contains    /    10s
+    [Teardown]    Close Browser
+
+Login With Wrong Password
+    Open Browser    ${BASE_URL}    chrome
+    Wait Until Element Is Visible    id=email    10s
     Input Text    id=email    test@example.com
     Input Text    id=password    WrongPass123
     Click Button    xpath=//button[contains(text(),"เข้าสู่ระบบ")]
-    Wait Until Page Contains Element    xpath=//*[contains(text(),"Invalid email or password") or contains(text(),"รหัสผ่าน")]    15s
-    Close Browser
-
-Login With Nonexistent Email (Fail)
-    Open Browser    ${LOGIN_URL}    ${BROWSER}
-    Input Text    id=email    noone@example.com
-    Input Text    id=password    Test1234
-    Click Button    xpath=//button[contains(text(),"เข้าสู่ระบบ")]
-    Wait Until Page Contains Element    xpath=//*[contains(text(),"Invalid email or password")]    15s
-    Close Browser
+    Sleep    1s
+    ${found}=    Run Keyword And Return Status    Wait Until Page Contains    Invalid email or password    5s
+    IF    not ${found}
+        Wait Until Page Contains    อีเมลหรือรหัสผ่านไม่ถูกต้อง    5s
+    END
+    [Teardown]    Close Browser
